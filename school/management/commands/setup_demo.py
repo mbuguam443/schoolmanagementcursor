@@ -82,13 +82,13 @@ class Command(BaseCommand):
             subject_objs.append(s)
 
         teachers_data = [
-            ('T001', 'Sarah', 'Johnson', 'sarah.j@school.edu'),
-            ('T002', 'Michael', 'Chen', 'michael.c@school.edu'),
-            ('T003', 'Emily', 'Davis', 'emily.d@school.edu'),
-            ('T004', 'James', 'Wilson', 'james.w@school.edu'),
+            ('T001', 'Sarah', 'Johnson', 'sarah.j@school.edu', 'sarah.johnson'),
+            ('T002', 'Michael', 'Chen', 'michael.c@school.edu', 'michael.chen'),
+            ('T003', 'Emily', 'Davis', 'emily.d@school.edu', 'emily.davis'),
+            ('T004', 'James', 'Wilson', 'james.w@school.edu', 'james.wilson'),
         ]
         teacher_objs = []
-        for eid, fn, ln, email in teachers_data:
+        for eid, fn, ln, email, username in teachers_data:
             t, _ = Teacher.objects.get_or_create(
                 employee_id=eid,
                 defaults={
@@ -99,6 +99,25 @@ class Command(BaseCommand):
                     'phone': '+1 555 0200',
                 },
             )
+            t_user, _ = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    'email': email,
+                    'first_name': fn,
+                    'last_name': ln,
+                    'is_staff': True,
+                    'is_superuser': False,
+                },
+            )
+            t_user.set_password('teacher123')
+            t_user.save()
+            Profile.objects.update_or_create(
+                user=t_user,
+                defaults={'role': Profile.Role.TEACHER, 'phone': '+1 555 0200'},
+            )
+            if t.user_id != t_user.pk:
+                t.user = t_user
+                t.save(update_fields=['user'])
             t.subjects.set(subject_objs[:3])
             teacher_objs.append(t)
 
@@ -207,4 +226,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Demo data loaded successfully!'))
         self.stdout.write('Run: python manage.py runserver')
-        self.stdout.write('Login: admin / admin123')
+        self.stdout.write('')
+        self.stdout.write('Logins:')
+        self.stdout.write('  Administrator — admin / admin123')
+        self.stdout.write('  Teachers      — sarah.johnson, michael.chen, emily.davis, james.wilson / teacher123')

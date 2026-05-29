@@ -34,8 +34,15 @@ python manage.py runserver
 
 Open **http://127.0.0.1:8000/** and sign in with:
 
-- **Username:** `admin`
-- **Password:** `admin123`
+| Role | Username | Password |
+|------|----------|----------|
+| Administrator | `admin` | `admin123` |
+| Teacher | `sarah.johnson` | `teacher123` |
+| Teacher | `michael.chen` | `teacher123` |
+| Teacher | `emily.davis` | `teacher123` |
+| Teacher | `james.wilson` | `teacher123` |
+
+Students and guardians do not have login accounts — they are managed by staff only.
 
 ## Tech Stack
 
@@ -74,10 +81,15 @@ This project uses **SQLite** (no separate database service). The [Render Bluepri
 3. Connect your repo and apply the blueprint.
 4. Wait for the build to finish, then open your app URL.
 
-Default login after the first deploy (demo data is loaded automatically):
+Default logins after the first deploy (demo data is loaded automatically):
 
-- **Username:** `admin`
-- **Password:** `admin123`
+| Role | Username | Password |
+|------|----------|----------|
+| Administrator | `admin` | `admin123` |
+| Teacher | `sarah.johnson` | `teacher123` |
+| Teacher | `michael.chen` | `teacher123` |
+| Teacher | `emily.davis` | `teacher123` |
+| Teacher | `james.wilson` | `teacher123` |
 
 After your first successful deploy, set `LOAD_DEMO_DATA` to `false` if you add your own data and want redeploys to keep it (until the next full redeploy wipes the disk).
 
