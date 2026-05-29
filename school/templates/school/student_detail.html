@@ -5,7 +5,9 @@
 {% block top_actions %}
 <a href="{% url 'school:report_card' student.pk %}" class="btn btn-primary-custom"><i class="bi bi-file-earmark-text"></i> Report Card</a>
 <a href="{% url 'school:report_card_pdf' student.pk %}" class="btn btn-outline-custom"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+{% if is_school_admin %}
 <a href="{% url 'school:student_edit' student.pk %}" class="btn btn-outline-custom"><i class="bi bi-pencil"></i> Edit</a>
+{% endif %}
 <a href="{% url 'school:student_list' %}" class="btn btn-outline-custom">Back</a>
 {% endblock %}
 
@@ -59,6 +61,7 @@
         </table>
       </div>
     </div>
+    {% if is_school_admin %}
     <div class="card-panel">
       <div class="card-header"><h3>Fees</h3></div>
       <div class="card-body p-0">
@@ -77,6 +80,7 @@
         </table>
       </div>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

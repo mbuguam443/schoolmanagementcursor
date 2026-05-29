@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 from django.db.models import Avg, Count, Q
+
 from .models import Attendance, Fee, GradeRecord, Student
 
 
@@ -20,11 +21,13 @@ def _fill_date_range(start, end, daily_map, value_keys):
     return labels, series
 
 
-def attendance_daily(today, days=14):
+def attendance_daily(today, days=14, student_ids=None):
     start = today - timedelta(days=days - 1)
+    qs = Attendance.objects.filter(date__gte=start, date__lte=today)
+    if student_ids is not None:
+        qs = qs.filter(student_id__in=student_ids)
     rows = (
-        Attendance.objects.filter(date__gte=start, date__lte=today)
-        .values('date')
+        qs.values('date')
         .annotate(
             present=Count('id', filter=Q(status=Attendance.Status.PRESENT)),
             absent=Count('id', filter=Q(status=Attendance.Status.ABSENT)),
@@ -44,18 +47,17 @@ def attendance_daily(today, days=14):
     return {'labels': labels, **series}
 
 
-def attendance_today_breakdown(today):
+def attendance_today_breakdown(today, student_ids=None):
     status_labels = {
         Attendance.Status.PRESENT: 'Present',
         Attendance.Status.ABSENT: 'Absent',
         Attendance.Status.LATE: 'Late',
         Attendance.Status.EXCUSED: 'Excused',
     }
-    rows = (
-        Attendance.objects.filter(date=today)
-        .values('status')
-        .annotate(count=Count('id'))
-    )
+    qs = Attendance.objects.filter(date=today)
+    if student_ids is not None:
+        qs = qs.filter(student_id__in=student_ids)
+    rows = qs.values('status').annotate(count=Count('id'))
     counts = {r['status']: r['count'] for r in rows}
     labels = []
     data = []
@@ -74,10 +76,12 @@ def attendance_today_breakdown(today):
     return {'labels': labels, 'data': data, 'colors': chart_colors}
 
 
-def students_by_classroom(limit=8):
+def students_by_classroom(limit=8, classroom_ids=None):
+    qs = Student.objects.filter(is_active=True, classroom__isnull=False)
+    if classroom_ids is not None:
+        qs = qs.filter(classroom_id__in=classroom_ids)
     rows = (
-        Student.objects.filter(is_active=True, classroom__isnull=False)
-        .values('classroom__grade__name', 'classroom__section')
+        qs.values('classroom__grade__name', 'classroom__section')
         .annotate(count=Count('id'))
         .order_by('-count')[:limit]
     )
@@ -105,9 +109,12 @@ def fee_status_breakdown():
     return {'labels': labels, 'data': data, 'colors': chart_colors}
 
 
-def grade_letter_distribution():
+def grade_letter_distribution(student_ids=None):
     dist = {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0}
-    for record in GradeRecord.objects.select_related('exam').iterator():
+    qs = GradeRecord.objects.select_related('exam')
+    if student_ids is not None:
+        qs = qs.filter(student_id__in=student_ids)
+    for record in qs.iterator():
         letter = record.letter_grade
         if letter in dist:
             dist[letter] += 1
@@ -116,9 +123,12 @@ def grade_letter_distribution():
     return {'labels': labels, 'data': data}
 
 
-def average_score_by_subject(limit=6):
+def average_score_by_subject(limit=6, student_ids=None):
+    qs = GradeRecord.objects.all()
+    if student_ids is not None:
+        qs = qs.filter(student_id__in=student_ids)
     rows = (
-        GradeRecord.objects.values('exam__subject__name')
+        qs.values('exam__subject__name')
         .annotate(avg_score=Avg('score'))
         .order_by('-avg_score')[:limit]
     )
@@ -127,12 +137,12 @@ def average_score_by_subject(limit=6):
     return {'labels': labels[: len(data)], 'data': data}
 
 
-def build_dashboard_charts(today):
+def build_dashboard_charts(today, student_ids=None, classroom_ids=None):
     return {
-        'attendance_daily': attendance_daily(today),
-        'attendance_today': attendance_today_breakdown(today),
-        'students_by_class': students_by_classroom(),
+        'attendance_daily': attendance_daily(today, student_ids=student_ids),
+        'attendance_today': attendance_today_breakdown(today, student_ids=student_ids),
+        'students_by_class': students_by_classroom(classroom_ids=classroom_ids),
         'fee_status': fee_status_breakdown(),
-        'grade_distribution': grade_letter_distribution(),
-        'scores_by_subject': average_score_by_subject(),
+        'grade_distribution': grade_letter_distribution(student_ids=student_ids),
+        'scores_by_subject': average_score_by_subject(student_ids=student_ids),
     }

@@ -3,8 +3,12 @@
 {% block page_heading %}{{ teacher.full_name }}{% endblock %}
 {% block page_subheading %}Employee ID: {{ teacher.employee_id }}{% endblock %}
 {% block top_actions %}
+{% if is_school_admin %}
 <a href="{% url 'school:teacher_edit' teacher.pk %}" class="btn btn-primary-custom">Edit</a>
 <a href="{% url 'school:teacher_list' %}" class="btn btn-outline-custom">Back</a>
+{% else %}
+<a href="{% url 'school:dashboard' %}" class="btn btn-outline-custom">Back</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}

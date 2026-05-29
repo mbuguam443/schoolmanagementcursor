@@ -2,7 +2,7 @@
 {% block title %}Timetable{% endblock %}
 {% block page_heading %}Timetable{% endblock %}
 {% block page_subheading %}Weekly class schedule{% endblock %}
-{% block top_actions %}<a href="{% url 'school:timetable_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Slot</a>{% endblock %}
+{% block top_actions %}{% if is_school_admin %}<a href="{% url 'school:timetable_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Slot</a>{% endif %}{% endblock %}
 
 {% block content %}
 <form method="get" class="search-bar">

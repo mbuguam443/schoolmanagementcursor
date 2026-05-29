@@ -2,7 +2,7 @@
 {% block title %}Subjects{% endblock %}
 {% block page_heading %}Subjects{% endblock %}
 {% block page_subheading %}Curriculum and course catalog{% endblock %}
-{% block top_actions %}<a href="{% url 'school:subject_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Subject</a>{% endblock %}
+{% block top_actions %}{% if is_school_admin %}<a href="{% url 'school:subject_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Subject</a>{% endif %}{% endblock %}
 
 {% block content %}
 <div class="card-panel">
@@ -16,7 +16,7 @@
           <td class="fw-semibold">{{ subject.name }}</td>
           <td class="text-muted">{{ subject.description|truncatewords:12|default:"—" }}</td>
           <td class="text-end">
-            <a href="{% url 'school:subject_edit' subject.pk %}" class="btn btn-sm btn-outline-custom">Edit</a>
+            {% if is_school_admin %}<a href="{% url 'school:subject_edit' subject.pk %}" class="btn btn-sm btn-outline-custom">Edit</a>{% endif %}
           </td>
         </tr>
         {% empty %}

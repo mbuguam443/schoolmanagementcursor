@@ -2,7 +2,7 @@
 {% block title %}Classrooms{% endblock %}
 {% block page_heading %}Classrooms{% endblock %}
 {% block page_subheading %}Grade sections and homeroom assignments{% endblock %}
-{% block top_actions %}<a href="{% url 'school:classroom_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Classroom</a>{% endblock %}
+{% block top_actions %}{% if is_school_admin %}<a href="{% url 'school:classroom_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Classroom</a>{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row g-3">

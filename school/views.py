@@ -13,7 +13,18 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .analytics import build_dashboard_charts
-from .decorators import admin_required
+from .decorators import AdminRequiredMixin, admin_required
+from .permissions import (
+    get_teacher,
+    is_school_admin,
+    teacher_can_access_classroom,
+    teacher_can_access_exam,
+    teacher_can_access_student,
+    teacher_classroom_ids,
+    teacher_classrooms,
+    teacher_exams,
+    teacher_students,
+)
 from .pdf_utils import render_html_to_pdf
 from .report_card import build_report_card_context
 from .forms import (
@@ -59,30 +70,62 @@ def logout_view(request):
 @login_required
 def dashboard(request):
     today = date.today()
+    admin = is_school_admin(request.user)
+    teacher = get_teacher(request.user)
+
+    if admin:
+        student_qs = Student.objects.filter(is_active=True)
+        classroom_qs = Classroom.objects.all()
+        attendance_qs = Attendance.objects.filter(date=today)
+        exam_qs = Exam.objects.all()
+        student_ids = None
+        classroom_ids = None
+    elif teacher:
+        student_qs = teacher_students(teacher)
+        classroom_qs = teacher_classrooms(teacher)
+        classroom_ids = list(teacher_classroom_ids(teacher))
+        student_ids = list(student_qs.values_list('pk', flat=True))
+        attendance_qs = Attendance.objects.filter(date=today, student_id__in=student_ids)
+        exam_qs = teacher_exams(teacher)
+    else:
+        student_qs = Student.objects.none()
+        classroom_qs = Classroom.objects.none()
+        attendance_qs = Attendance.objects.none()
+        exam_qs = Exam.objects.none()
+        student_ids = []
+        classroom_ids = []
+
     stats = {
-        'students': Student.objects.filter(is_active=True).count(),
-        'teachers': Teacher.objects.filter(is_active=True).count(),
-        'classrooms': Classroom.objects.count(),
+        'students': student_qs.count(),
+        'teachers': Teacher.objects.filter(is_active=True).count() if admin else 1,
+        'classrooms': classroom_qs.count(),
         'subjects': Subject.objects.count(),
-        'present_today': Attendance.objects.filter(date=today, status=Attendance.Status.PRESENT).count(),
-        'absent_today': Attendance.objects.filter(date=today, status=Attendance.Status.ABSENT).count(),
-        'fees_pending': Fee.objects.filter(status__in=[Fee.Status.PENDING, Fee.Status.OVERDUE]).count(),
-        'fees_collected': Fee.objects.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0'),
+        'present_today': attendance_qs.filter(status=Attendance.Status.PRESENT).count(),
+        'absent_today': attendance_qs.filter(status=Attendance.Status.ABSENT).count(),
     }
-    recent_students = Student.objects.filter(is_active=True).select_related('classroom__grade')[:5]
-    upcoming_exams = Exam.objects.select_related('subject', 'classroom__grade')[:5]
+    if admin:
+        stats['fees_pending'] = Fee.objects.filter(
+            status__in=[Fee.Status.PENDING, Fee.Status.OVERDUE]
+        ).count()
+        stats['fees_collected'] = Fee.objects.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+
+    recent_students = student_qs.select_related('classroom__grade')[:5]
+    upcoming_exams = exam_qs.select_related('subject', 'classroom__grade')[:5]
     attendance_trend = (
         Attendance.objects.filter(date__gte=today.replace(day=1))
         .values('status')
         .annotate(count=Count('id'))
     )
+    if not admin and student_ids is not None:
+        attendance_trend = attendance_trend.filter(student_id__in=student_ids)
+
     top_classrooms = (
-        Student.objects.filter(is_active=True, classroom__isnull=False)
+        student_qs.filter(classroom__isnull=False)
         .values('classroom__grade__name', 'classroom__section')
         .annotate(count=Count('id'))
         .order_by('-count')[:5]
     )
-    charts = build_dashboard_charts(today)
+    charts = build_dashboard_charts(today, student_ids=student_ids, classroom_ids=classroom_ids)
     return render(request, 'school/dashboard.html', {
         'stats': stats,
         'recent_students': recent_students,
@@ -91,6 +134,7 @@ def dashboard(request):
         'top_classrooms': top_classrooms,
         'today': today,
         'charts': charts,
+        'is_school_admin': admin,
     })
 
 
@@ -102,6 +146,11 @@ class StudentListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = Student.objects.select_related('classroom__grade', 'classroom__academic_year')
+        teacher = get_teacher(self.request.user)
+        if not is_school_admin(self.request.user) and teacher:
+            qs = qs.filter(classroom_id__in=teacher_classroom_ids(teacher))
+        elif not is_school_admin(self.request.user):
+            qs = qs.none()
         q = self.request.GET.get('q', '').strip()
         classroom = self.request.GET.get('classroom', '')
         if q:
@@ -123,7 +172,11 @@ class StudentListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['classrooms'] = Classroom.objects.select_related('grade')
+        if is_school_admin(self.request.user):
+            ctx['classrooms'] = Classroom.objects.select_related('grade')
+        else:
+            teacher = get_teacher(self.request.user)
+            ctx['classrooms'] = teacher_classrooms(teacher) if teacher else Classroom.objects.none()
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_classroom'] = self.request.GET.get('classroom', '')
         ctx['status_filter'] = self.request.GET.get('status', 'active')
@@ -135,18 +188,29 @@ class StudentDetailView(LoginRequiredMixin, DetailView):
     template_name = 'school/student_detail.html'
     context_object_name = 'student'
 
+    def get(self, request, *args, **kwargs):
+        student = self.get_object()
+        if not teacher_can_access_student(request.user, student):
+            messages.error(request, 'You do not have access to this student.')
+            return redirect('school:student_list')
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         student = self.object
         ctx['attendance'] = student.attendance.order_by('-date')[:10]
         ctx['grades'] = student.grades.select_related('exam__subject').order_by('-exam__exam_date')[:10]
-        ctx['fees'] = student.fees.all()[:10]
+        if is_school_admin(self.request.user):
+            ctx['fees'] = student.fees.all()[:10]
         return ctx
 
 
 @login_required
 def report_card(request, pk):
     student = get_object_or_404(Student, pk=pk)
+    if not teacher_can_access_student(request.user, student):
+        messages.error(request, 'You do not have access to this report card.')
+        return redirect('school:student_list')
     context = build_report_card_context(student)
     context['student'] = student
     return render(request, 'school/report_card.html', context)
@@ -155,6 +219,9 @@ def report_card(request, pk):
 @login_required
 def report_card_pdf(request, pk):
     student = get_object_or_404(Student, pk=pk)
+    if not teacher_can_access_student(request.user, student):
+        messages.error(request, 'You do not have access to this report card.')
+        return redirect('school:student_list')
     context = build_report_card_context(student)
     context['student'] = student
     pdf_bytes, error = render_html_to_pdf('school/report_card_document.html', context, request=request)
@@ -167,7 +234,7 @@ def report_card_pdf(request, pk):
     return response
 
 
-class StudentCreateView(LoginRequiredMixin, CreateView):
+class StudentCreateView(AdminRequiredMixin, CreateView):
     model = Student
     form_class = StudentForm
     template_name = 'school/form_page.html'
@@ -183,7 +250,7 @@ class StudentCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class StudentUpdateView(LoginRequiredMixin, UpdateView):
+class StudentUpdateView(AdminRequiredMixin, UpdateView):
     model = Student
     form_class = StudentForm
     template_name = 'school/form_page.html'
@@ -199,7 +266,7 @@ class StudentUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class StudentDeleteView(LoginRequiredMixin, DeleteView):
+class StudentDeleteView(AdminRequiredMixin, DeleteView):
     model = Student
     template_name = 'school/confirm_delete.html'
     success_url = reverse_lazy('school:student_list')
@@ -210,7 +277,7 @@ class StudentDeleteView(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-class TeacherListView(LoginRequiredMixin, ListView):
+class TeacherListView(AdminRequiredMixin, ListView):
     model = Teacher
     template_name = 'school/teacher_list.html'
     context_object_name = 'teachers'
@@ -233,8 +300,17 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
     template_name = 'school/teacher_detail.html'
     context_object_name = 'teacher'
 
+    def get(self, request, *args, **kwargs):
+        teacher = self.get_object()
+        if not is_school_admin(request.user):
+            own = get_teacher(request.user)
+            if not own or own.pk != teacher.pk:
+                messages.error(request, 'You can only view your own profile.')
+                return redirect('school:dashboard')
+        return super().get(request, *args, **kwargs)
 
-class TeacherCreateView(LoginRequiredMixin, CreateView):
+
+class TeacherCreateView(AdminRequiredMixin, CreateView):
     model = Teacher
     form_class = TeacherForm
     template_name = 'school/form_page.html'
@@ -250,7 +326,7 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class TeacherUpdateView(LoginRequiredMixin, UpdateView):
+class TeacherUpdateView(AdminRequiredMixin, UpdateView):
     model = Teacher
     form_class = TeacherForm
     template_name = 'school/form_page.html'
@@ -262,7 +338,7 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class TeacherDeleteView(LoginRequiredMixin, DeleteView):
+class TeacherDeleteView(AdminRequiredMixin, DeleteView):
     model = Teacher
     template_name = 'school/confirm_delete.html'
     success_url = reverse_lazy('school:teacher_list')
@@ -274,12 +350,18 @@ class ClassroomListView(LoginRequiredMixin, ListView):
     context_object_name = 'classrooms'
 
     def get_queryset(self):
-        return Classroom.objects.select_related('grade', 'academic_year', 'class_teacher').annotate(
+        qs = Classroom.objects.select_related('grade', 'academic_year', 'class_teacher').annotate(
             student_count=Count('students', filter=Q(students__is_active=True))
         )
+        teacher = get_teacher(self.request.user)
+        if not is_school_admin(self.request.user) and teacher:
+            return qs.filter(pk__in=teacher_classroom_ids(teacher))
+        if not is_school_admin(self.request.user):
+            return qs.none()
+        return qs
 
 
-class ClassroomCreateView(LoginRequiredMixin, CreateView):
+class ClassroomCreateView(AdminRequiredMixin, CreateView):
     model = Classroom
     form_class = ClassroomForm
     template_name = 'school/form_page.html'
@@ -297,7 +379,7 @@ class SubjectListView(LoginRequiredMixin, ListView):
     context_object_name = 'subjects'
 
 
-class SubjectCreateView(LoginRequiredMixin, CreateView):
+class SubjectCreateView(AdminRequiredMixin, CreateView):
     model = Subject
     form_class = SubjectForm
     template_name = 'school/form_page.html'
@@ -309,7 +391,7 @@ class SubjectCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class SubjectUpdateView(LoginRequiredMixin, UpdateView):
+class SubjectUpdateView(AdminRequiredMixin, UpdateView):
     model = Subject
     form_class = SubjectForm
     template_name = 'school/form_page.html'
@@ -321,7 +403,7 @@ class SubjectUpdateView(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class SubjectDeleteView(LoginRequiredMixin, DeleteView):
+class SubjectDeleteView(AdminRequiredMixin, DeleteView):
     model = Subject
     template_name = 'school/confirm_delete.html'
     success_url = reverse_lazy('school:subject_list')
@@ -330,11 +412,20 @@ class SubjectDeleteView(LoginRequiredMixin, DeleteView):
 @login_required
 def timetable_view(request):
     classroom_id = request.GET.get('classroom')
-    classrooms = Classroom.objects.select_related('grade', 'academic_year')
+    teacher = get_teacher(request.user)
+    if is_school_admin(request.user):
+        classrooms = Classroom.objects.select_related('grade', 'academic_year')
+    elif teacher:
+        classrooms = teacher_classrooms(teacher)
+    else:
+        classrooms = Classroom.objects.none()
     selected = None
     entries = TimetableEntry.objects.none()
     if classroom_id:
         selected = get_object_or_404(Classroom, pk=classroom_id)
+        if not teacher_can_access_classroom(request.user, selected):
+            messages.error(request, 'You do not have access to this classroom timetable.')
+            return redirect('school:timetable')
         entries = (
             TimetableEntry.objects.filter(classroom=selected)
             .select_related('subject', 'teacher')
@@ -356,7 +447,7 @@ def timetable_view(request):
     })
 
 
-class TimetableCreateView(LoginRequiredMixin, CreateView):
+class TimetableCreateView(AdminRequiredMixin, CreateView):
     model = TimetableEntry
     form_class = TimetableForm
     template_name = 'school/form_page.html'
@@ -371,6 +462,14 @@ class TimetableCreateView(LoginRequiredMixin, CreateView):
 @login_required
 def attendance_mark(request):
     form = AttendanceBulkForm(request.GET or None)
+    teacher = get_teacher(request.user)
+    if is_school_admin(request.user):
+        allowed_classrooms = Classroom.objects.all()
+    elif teacher:
+        allowed_classrooms = teacher_classrooms(teacher)
+    else:
+        allowed_classrooms = Classroom.objects.none()
+    form.fields['classroom'].queryset = allowed_classrooms.select_related('grade', 'academic_year')
     rows = []
     selected_date = request.GET.get('date') or str(date.today())
     selected_classroom = request.GET.get('classroom')
@@ -379,6 +478,9 @@ def attendance_mark(request):
         mark_date = request.POST.get('date')
         classroom_id = request.POST.get('classroom')
         classroom = get_object_or_404(Classroom, pk=classroom_id)
+        if not teacher_can_access_classroom(request.user, classroom):
+            messages.error(request, 'You do not have access to mark attendance for this class.')
+            return redirect('school:attendance_mark')
         students = Student.objects.filter(classroom=classroom, is_active=True)
         for student in students:
             status = request.POST.get(f'status_{student.pk}', Attendance.Status.PRESENT)
@@ -392,6 +494,9 @@ def attendance_mark(request):
 
     if selected_classroom:
         classroom = get_object_or_404(Classroom, pk=selected_classroom)
+        if not teacher_can_access_classroom(request.user, classroom):
+            messages.error(request, 'You do not have access to this classroom.')
+            return redirect('school:attendance_mark')
         students = Student.objects.filter(classroom=classroom, is_active=True)
         existing = {
             a.student_id: a.status
@@ -420,10 +525,16 @@ class ExamListView(LoginRequiredMixin, ListView):
     context_object_name = 'exams'
 
     def get_queryset(self):
-        return Exam.objects.select_related('subject', 'classroom__grade', 'academic_year')
+        qs = Exam.objects.select_related('subject', 'classroom__grade', 'academic_year')
+        teacher = get_teacher(self.request.user)
+        if not is_school_admin(self.request.user) and teacher:
+            return qs.filter(classroom_id__in=teacher_classroom_ids(teacher))
+        if not is_school_admin(self.request.user):
+            return qs.none()
+        return qs
 
 
-class ExamCreateView(LoginRequiredMixin, CreateView):
+class ExamCreateView(AdminRequiredMixin, CreateView):
     model = Exam
     form_class = ExamForm
     template_name = 'school/form_page.html'
@@ -438,6 +549,9 @@ class ExamCreateView(LoginRequiredMixin, CreateView):
 @login_required
 def exam_grades(request, pk):
     exam = get_object_or_404(Exam.objects.select_related('subject', 'classroom'), pk=pk)
+    if not teacher_can_access_exam(request.user, exam):
+        messages.error(request, 'You do not have access to this exam.')
+        return redirect('school:exam_list')
     students = Student.objects.filter(classroom=exam.classroom, is_active=True)
     existing = {g.student_id: g for g in GradeRecord.objects.filter(exam=exam)}
 
@@ -467,7 +581,7 @@ def exam_grades(request, pk):
     })
 
 
-class FeeListView(LoginRequiredMixin, ListView):
+class FeeListView(AdminRequiredMixin, ListView):
     model = Fee
     template_name = 'school/fee_list.html'
     context_object_name = 'fees'
@@ -481,7 +595,7 @@ class FeeListView(LoginRequiredMixin, ListView):
         return qs
 
 
-class FeeCreateView(LoginRequiredMixin, CreateView):
+class FeeCreateView(AdminRequiredMixin, CreateView):
     model = Fee
     form_class = FeeForm
     template_name = 'school/fee_form.html'
@@ -493,7 +607,7 @@ class FeeCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class FeeUpdateView(LoginRequiredMixin, UpdateView):
+class FeeUpdateView(AdminRequiredMixin, UpdateView):
     model = Fee
     form_class = FeeForm
     template_name = 'school/fee_form.html'

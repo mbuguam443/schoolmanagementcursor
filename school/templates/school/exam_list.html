@@ -2,7 +2,7 @@
 {% block title %}Exams{% endblock %}
 {% block page_heading %}Exams & Grades{% endblock %}
 {% block page_subheading %}Schedule exams and record student scores{% endblock %}
-{% block top_actions %}<a href="{% url 'school:exam_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Schedule Exam</a>{% endblock %}
+{% block top_actions %}{% if is_school_admin %}<a href="{% url 'school:exam_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Schedule Exam</a>{% endif %}{% endblock %}
 
 {% block content %}
 <div class="card-panel">

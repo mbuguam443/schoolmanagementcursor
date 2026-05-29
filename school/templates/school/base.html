@@ -35,9 +35,15 @@
       <a href="{% url 'school:student_list' %}" class="nav-link {% if 'student' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-people-fill"></i> Students
       </a>
+      {% if is_school_admin %}
       <a href="{% url 'school:teacher_list' %}" class="nav-link {% if 'teacher' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-person-badge-fill"></i> Teachers
       </a>
+      {% elif current_teacher %}
+      <a href="{% url 'school:teacher_detail' current_teacher.pk %}" class="nav-link {% if 'teacher' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-person-badge-fill"></i> My Profile
+      </a>
+      {% endif %}
       <a href="{% url 'school:classroom_list' %}" class="nav-link {% if 'classroom' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-building"></i> Classrooms
       </a>
@@ -54,10 +60,10 @@
       <a href="{% url 'school:exam_list' %}" class="nav-link {% if 'exam' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-clipboard-data"></i> Exams & Grades
       </a>
+      {% if is_school_admin %}
       <a href="{% url 'school:fee_list' %}" class="nav-link {% if 'fee' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-cash-coin"></i> Fees
       </a>
-      {% if user.is_superuser %}
       <a href="{% url 'school:settings' %}" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
         <i class="bi bi-gear-fill"></i> Settings
       </a>
@@ -68,7 +74,7 @@
         <div class="user-avatar">{{ user.username|slice:":2"|upper }}</div>
         <div>
           <strong>{{ user.get_full_name|default:user.username }}</strong>
-          <small>{% if user.is_superuser %}Administrator{% else %}Staff{% endif %}</small>
+          <small>{% if is_school_admin %}Administrator{% else %}Teacher{% endif %}</small>
         </div>
       </div>
       <a href="{% url 'school:logout' %}" class="nav-link"><i class="bi bi-box-arrow-left"></i> Sign out</a>

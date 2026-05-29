@@ -1,8 +1,8 @@
 {% extends 'school/base.html' %}
 {% block title %}Students{% endblock %}
 {% block page_heading %}Students{% endblock %}
-{% block page_subheading %}Manage student records and enrollments{% endblock %}
-{% block top_actions %}<a href="{% url 'school:student_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Student</a>{% endblock %}
+{% block page_subheading %}{% if is_school_admin %}Manage student records and enrollments{% else %}Students in your classes{% endif %}{% endblock %}
+{% block top_actions %}{% if is_school_admin %}<a href="{% url 'school:student_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Student</a>{% endif %}{% endblock %}
 
 {% block content %}
 <form method="get" class="search-bar">
@@ -35,7 +35,7 @@
         </p>
         <div class="d-flex gap-2">
           <a href="{% url 'school:student_detail' student.pk %}" class="btn btn-sm btn-primary-custom">Profile</a>
-          <a href="{% url 'school:student_edit' student.pk %}" class="btn btn-sm btn-outline-custom">Edit</a>
+          {% if is_school_admin %}<a href="{% url 'school:student_edit' student.pk %}" class="btn btn-sm btn-outline-custom">Edit</a>{% endif %}
         </div>
       </div>
     </div>
