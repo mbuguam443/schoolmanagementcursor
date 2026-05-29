@@ -3,7 +3,7 @@ services:
     name: kiambu-school
     runtime: python
     plan: free
-    buildCommand: "./build.sh"
+    buildCommand: "bash build.sh"
     startCommand: "gunicorn schoolmgmt.wsgi:application"
     healthCheckPath: /login/
     envVars:
