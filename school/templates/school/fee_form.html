@@ -1,0 +1,27 @@
+{% extends 'school/form_page.html' %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+  .ts-wrapper.searchable-select-wrapper { width: 100%; }
+  .ts-control { min-height: 42px; border-radius: 10px !important; border-color: #e2e8f0 !important; }
+  .ts-dropdown { border-radius: 10px; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.querySelectorAll('.searchable-select').forEach(function (el) {
+  if (el.tomselect) return;
+  new TomSelect(el, {
+    create: false,
+    maxOptions: null,
+    sortField: { field: '$order' },
+    placeholder: 'Type to search student...',
+    allowEmptyOption: false,
+    plugins: ['dropdown_input'],
+  });
+});
+</script>
+{% endblock %}

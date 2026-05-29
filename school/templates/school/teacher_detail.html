@@ -1,0 +1,41 @@
+{% extends 'school/base.html' %}
+{% block title %}{{ teacher.full_name }}{% endblock %}
+{% block page_heading %}{{ teacher.full_name }}{% endblock %}
+{% block page_subheading %}Employee ID: {{ teacher.employee_id }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'school:teacher_edit' teacher.pk %}" class="btn btn-primary-custom">Edit</a>
+<a href="{% url 'school:teacher_list' %}" class="btn btn-outline-custom">Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card-panel p-4">
+      <p><span class="text-muted">Email</span><br><strong>{{ teacher.email }}</strong></p>
+      <p><span class="text-muted">Phone</span><br><strong>{{ teacher.phone|default:"—" }}</strong></p>
+      <p><span class="text-muted">Hire Date</span><br><strong>{{ teacher.hire_date|date:"F j, Y" }}</strong></p>
+      <p><span class="text-muted">Status</span><br>
+        {% if teacher.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card-panel p-4">
+      <h5 class="fw-bold mb-3">Subjects</h5>
+      <div class="d-flex flex-wrap gap-2">
+        {% for sub in teacher.subjects.all %}
+        <span class="badge bg-primary rounded-pill px-3 py-2">{{ sub.name }} ({{ sub.code }})</span>
+        {% empty %}
+        <p class="text-muted mb-0">No subjects assigned.</p>
+        {% endfor %}
+      </div>
+      <h5 class="fw-bold mt-4 mb-3">Homeroom Classes</h5>
+      {% for room in teacher.homerooms.all %}
+      <span class="badge bg-light text-dark border me-1">{{ room.display_name }}</span>
+      {% empty %}
+      <p class="text-muted mb-0">Not assigned as class teacher.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

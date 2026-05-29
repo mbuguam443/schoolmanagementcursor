@@ -1,0 +1,123 @@
+<div class="p-4 p-md-5" id="report-card-print">
+  <div class="text-center border-bottom border-3 border-primary pb-3 mb-4">
+    <h2 class="fw-bold text-primary mb-1">{{ school_name }}</h2>
+    <p class="text-muted mb-0">Official Student Report Card</p>
+    {% if academic_year %}<p class="small mt-1"><strong>Academic Year:</strong> {{ academic_year.name }}</p>{% endif %}
+  </div>
+
+  <div class="bg-primary bg-opacity-10 border-start border-4 border-primary px-3 py-2 mb-4 fw-bold">Student Report Card</div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="small text-muted text-uppercase">Student Name</div>
+      <div class="fw-bold fs-5">{{ student.full_name }}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted text-uppercase">Admission Number</div>
+      <div class="fw-bold fs-5">{{ student.admission_number }}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted text-uppercase">Class</div>
+      <div class="fw-semibold">{% if student.classroom %}{{ student.classroom.display_name }}{% else %}—{% endif %}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted text-uppercase">Date of Birth</div>
+      <div class="fw-semibold">{{ student.date_of_birth|date:"F j, Y" }}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted text-uppercase">Class Teacher</div>
+      <div class="fw-semibold">{{ class_teacher }}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted text-uppercase">Guardian</div>
+      <div class="fw-semibold">{{ student.guardian_name }}</div>
+    </div>
+  </div>
+
+  <h6 class="text-muted text-uppercase small mb-2">Academic Performance</h6>
+  {% if grade_rows %}
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered table-modern">
+      <thead class="table-primary">
+        <tr>
+          <th>Subject</th><th>Exam</th><th>Date</th><th>Score</th><th>%</th><th>Grade</th><th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in grade_rows %}
+        <tr>
+          <td>{{ row.subject }}</td>
+          <td>{{ row.exam_name }}</td>
+          <td>{{ row.exam_date|date:"M j, Y" }}</td>
+          <td>{{ row.score }} / {{ row.max_score }}</td>
+          <td>{{ row.percentage }}%</td>
+          <td><span class="badge bg-primary">{{ row.letter_grade }}</span></td>
+          <td>{{ row.remarks|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="row g-3 mb-4 text-center">
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-3 fw-bold text-primary">{{ overall_average }}%</div>
+        <div class="small text-muted">Overall Average</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-3 fw-bold"><span class="badge bg-primary fs-5">{{ overall_letter }}</span></div>
+        <div class="small text-muted">Overall Grade</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-3 fw-bold text-success">{% if attendance_stats.attendance_rate %}{{ attendance_stats.attendance_rate }}%{% else %}—{% endif %}</div>
+        <div class="small text-muted">Attendance Rate</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-3 fw-bold">{{ grade_rows|length }}</div>
+        <div class="small text-muted">Exams Recorded</div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted text-center py-4 border rounded mb-4">No exam grades recorded for this academic year yet.</p>
+  {% endif %}
+
+  <h6 class="text-muted text-uppercase small mb-2">Attendance Summary</h6>
+  <div class="row g-3 mb-5 text-center">
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-4 fw-bold">{{ attendance_stats.total_days }}</div>
+        <div class="small text-muted">Days Recorded</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-4 fw-bold text-success">{{ attendance_stats.present }}</div>
+        <div class="small text-muted">Present</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-4 fw-bold text-danger">{{ attendance_stats.absent }}</div>
+        <div class="small text-muted">Absent</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3">
+        <div class="fs-4 fw-bold text-warning">{{ attendance_stats.late }}</div>
+        <div class="small text-muted">Late</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-5 pt-4">
+    <div class="col-6 border-top pt-3 text-muted small">Class Teacher Signature</div>
+    <div class="col-6 border-top pt-3 text-muted small">Principal Signature &amp; School Stamp</div>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kiambu-school
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn schoolmgmt.wsgi:application"
+    healthCheckPath: /login/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: LOAD_DEMO_DATA
+        value: "true"

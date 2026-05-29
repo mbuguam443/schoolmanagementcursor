@@ -1,0 +1,39 @@
+{% extends 'school/base.html' %}
+{% block title %}Grades — {{ exam.name }}{% endblock %}
+{% block page_heading %}{{ exam.name }}{% endblock %}
+{% block page_subheading %}{{ exam.subject.name }} · {{ exam.classroom.display_name }} · Max {{ exam.max_score }}{% endblock %}
+{% block top_actions %}<a href="{% url 'school:exam_list' %}" class="btn btn-outline-custom">Back to Exams</a>{% endblock %}
+
+{% block content %}
+{% if class_avg %}
+<div class="alert alert-info">Class average: <strong>{{ class_avg|floatformat:1 }}</strong> / {{ exam.max_score }}</div>
+{% endif %}
+<form method="post">
+  {% csrf_token %}
+  <div class="card-panel">
+    <div class="card-header d-flex justify-content-between">
+      <h3>Student Scores</h3>
+      <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save"></i> Save Grades</button>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-modern mb-0">
+        <thead><tr><th>Student</th><th>Admission #</th><th>Score</th><th>Grade</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.student.full_name }}</td>
+            <td>{{ row.student.admission_number }}</td>
+            <td>
+              <input type="number" step="0.01" min="0" max="{{ exam.max_score }}" name="score_{{ row.student.pk }}"
+                     value="{% if row.record %}{{ row.record.score }}{% endif %}"
+                     class="form-control grade-input" placeholder="0">
+            </td>
+            <td>{% if row.record %}<span class="badge bg-primary">{{ row.record.letter_grade }}</span>{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'school/base.html' %}
+{% block title %}Students{% endblock %}
+{% block page_heading %}Students{% endblock %}
+{% block page_subheading %}Manage student records and enrollments{% endblock %}
+{% block top_actions %}<a href="{% url 'school:student_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Student</a>{% endblock %}
+
+{% block content %}
+<form method="get" class="search-bar">
+  <input type="text" name="q" value="{{ search_query }}" class="form-control" style="max-width:280px" placeholder="Search name or admission #...">
+  <select name="classroom" class="form-select" style="max-width:200px">
+    <option value="">All Classes</option>
+    {% for c in classrooms %}
+    <option value="{{ c.pk }}" {% if selected_classroom == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.display_name }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" class="form-select" style="max-width:140px">
+    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+  </select>
+  <button class="btn btn-primary-custom" type="submit"><i class="bi bi-search"></i> Filter</button>
+</form>
+
+<div class="student-grid">
+  {% for student in students %}
+  <div class="student-card">
+    <div class="d-flex align-items-start gap-3">
+      <div class="avatar-circle" style="background:{{ student.photo_color }}">{{ student.initials }}</div>
+      <div class="flex-grow-1">
+        <h5 class="mb-0 fw-bold">{{ student.full_name }}</h5>
+        <small class="text-muted">{{ student.admission_number }}</small>
+        <p class="mb-2 mt-2 small">
+          <i class="bi bi-building"></i>
+          {% if student.classroom %}{{ student.classroom.display_name }}{% else %}Unassigned{% endif %}
+        </p>
+        <div class="d-flex gap-2">
+          <a href="{% url 'school:student_detail' student.pk %}" class="btn btn-sm btn-primary-custom">Profile</a>
+          <a href="{% url 'school:student_edit' student.pk %}" class="btn btn-sm btn-outline-custom">Edit</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card-panel p-5 text-center text-muted">No students found.</div></div>
+  {% endfor %}
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&classroom={{ selected_classroom }}&status={{ status_filter }}">Previous</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}
+    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&classroom={{ selected_classroom }}&status={{ status_filter }}">Next</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

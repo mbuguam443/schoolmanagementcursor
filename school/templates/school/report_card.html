@@ -1,0 +1,40 @@
+{% extends 'school/base.html' %}
+{% block title %}Report Card — {{ student.full_name }}{% endblock %}
+{% block page_heading %}Report Card{% endblock %}
+{% block page_subheading %}{{ student.full_name }} · {{ student.admission_number }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'school:report_card_pdf' student.pk %}" class="btn btn-primary-custom">
+  <i class="bi bi-file-earmark-pdf"></i> Download PDF
+</a>
+<button type="button" class="btn btn-outline-custom" onclick="window.print()">
+  <i class="bi bi-printer"></i> Print
+</button>
+<a href="{% url 'school:student_detail' student.pk %}" class="btn btn-outline-custom">Back to Profile</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    .sidebar, .topbar .btn, .topbar p { display: none !important; }
+    .topbar { border: none !important; padding: 0 !important; }
+    .topbar h2 { font-size: 1rem !important; }
+    .main-content { margin-left: 0 !important; }
+    .content-area { padding: 0 !important; }
+    .report-card-frame { box-shadow: none !important; border: none !important; }
+  }
+  .report-card-frame {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(15,23,42,0.08);
+    overflow: hidden;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-card-frame">
+  {% include 'school/report_card_preview.html' %}
+</div>
+{% endblock %}

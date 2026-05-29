@@ -1,0 +1,59 @@
+{% extends 'school/base.html' %}
+{% block title %}Attendance{% endblock %}
+{% block page_heading %}Attendance{% endblock %}
+{% block page_subheading %}Mark daily attendance by class{% endblock %}
+
+{% block content %}
+<form method="get" class="search-bar">
+  <input type="date" name="date" value="{{ selected_date }}" class="form-control" style="max-width:180px">
+  <select name="classroom" class="form-select" style="max-width:220px" required>
+    <option value="">Select classroom</option>
+    {% for c in form.fields.classroom.queryset %}
+    <option value="{{ c.pk }}" {% if selected_classroom == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.display_name }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary-custom">Load Students</button>
+</form>
+
+{% if rows %}
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="date" value="{{ selected_date }}">
+  <input type="hidden" name="classroom" value="{{ selected_classroom }}">
+  <div class="card-panel">
+    <div class="card-header d-flex justify-content-between">
+      <h3>Mark Attendance — {{ selected_date }}</h3>
+      <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save"></i> Save Attendance</button>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-modern mb-0">
+        <thead><tr><th>Student</th><th>Admission #</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background:{{ row.student.photo_color }};width:32px;height:32px;font-size:.75rem">{{ row.student.initials }}</div>
+                {{ row.student.full_name }}
+              </div>
+            </td>
+            <td>{{ row.student.admission_number }}</td>
+            <td>
+              <select name="status_{{ row.student.pk }}" class="form-select form-select-sm" style="max-width:140px">
+                <option value="P" {% if row.status == 'P' %}selected{% endif %}>Present</option>
+                <option value="A" {% if row.status == 'A' %}selected{% endif %}>Absent</option>
+                <option value="L" {% if row.status == 'L' %}selected{% endif %}>Late</option>
+                <option value="E" {% if row.status == 'E' %}selected{% endif %}>Excused</option>
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+{% elif selected_classroom %}
+<div class="card-panel p-4 text-center text-muted">No active students in this class.</div>
+{% endif %}
+{% endblock %}

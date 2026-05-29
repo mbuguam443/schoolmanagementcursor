@@ -1,0 +1,33 @@
+{% extends 'school/base.html' %}
+{% block title %}Exams{% endblock %}
+{% block page_heading %}Exams & Grades{% endblock %}
+{% block page_subheading %}Schedule exams and record student scores{% endblock %}
+{% block top_actions %}<a href="{% url 'school:exam_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Schedule Exam</a>{% endblock %}
+
+{% block content %}
+<div class="card-panel">
+  <div class="card-body p-0">
+    <table class="table table-modern mb-0">
+      <thead>
+        <tr><th>Exam</th><th>Subject</th><th>Class</th><th>Date</th><th>Max Score</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for exam in exams %}
+        <tr>
+          <td class="fw-semibold">{{ exam.name }}</td>
+          <td>{{ exam.subject.name }}</td>
+          <td>{{ exam.classroom.display_name }}</td>
+          <td>{{ exam.exam_date|date:"M j, Y" }}</td>
+          <td>{{ exam.max_score }}</td>
+          <td class="text-end">
+            <a href="{% url 'school:exam_grades' exam.pk %}" class="btn btn-sm btn-primary-custom">Enter Grades</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No exams scheduled.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

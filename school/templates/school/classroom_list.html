@@ -1,0 +1,29 @@
+{% extends 'school/base.html' %}
+{% block title %}Classrooms{% endblock %}
+{% block page_heading %}Classrooms{% endblock %}
+{% block page_subheading %}Grade sections and homeroom assignments{% endblock %}
+{% block top_actions %}<a href="{% url 'school:classroom_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Classroom</a>{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  {% for room in classrooms %}
+  <div class="col-md-6 col-lg-4">
+    <div class="student-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h4 class="fw-bold mb-0">{{ room.display_name }}</h4>
+          <small class="text-muted">{{ room.academic_year.name }}</small>
+        </div>
+        <span class="badge bg-primary rounded-pill">{{ room.student_count }} / {{ room.capacity }}</span>
+      </div>
+      <hr>
+      <p class="small mb-1 text-muted">Class Teacher</p>
+      <p class="fw-semibold">{% if room.class_teacher %}{{ room.class_teacher.full_name }}{% else %}—{% endif %}</p>
+      <a href="{% url 'school:attendance_mark' %}?classroom={{ room.pk }}" class="btn btn-sm btn-outline-custom mt-2">Mark Attendance</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card-panel p-5 text-center text-muted">No classrooms. Add grade levels in Settings first.</div></div>
+  {% endfor %}
+</div>
+{% endblock %}

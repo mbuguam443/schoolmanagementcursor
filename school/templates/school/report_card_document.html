@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Report Card — {{ student.full_name }}</title>
+  <style>
+    @page { size: A4; margin: 1.5cm; }
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #4f46e5;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22pt;
+      color: #312e81;
+    }
+    .header p { margin: 4px 0 0; color: #64748b; font-size: 10pt; }
+    .title-bar {
+      background: #eef2ff;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 12pt;
+      margin-bottom: 16px;
+      border-left: 4px solid #4f46e5;
+    }
+    .info-grid {
+      width: 100%;
+      margin-bottom: 20px;
+      border-collapse: collapse;
+    }
+    .info-grid td {
+      padding: 6px 8px;
+      vertical-align: top;
+      width: 50%;
+    }
+    .label { color: #64748b; font-size: 9pt; text-transform: uppercase; }
+    .value { font-weight: bold; font-size: 11pt; }
+    table.grades {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table.grades th {
+      background: #4f46e5;
+      color: white;
+      padding: 8px;
+      text-align: left;
+      font-size: 9pt;
+    }
+    table.grades td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 8px;
+      font-size: 10pt;
+    }
+    table.grades tr:nth-child(even) td { background: #f8fafc; }
+    .summary-box {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    .summary-box td {
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      text-align: center;
+      width: 25%;
+    }
+    .summary-box .num { font-size: 18pt; font-weight: bold; color: #4f46e5; }
+    .summary-box .lbl { font-size: 8pt; color: #64748b; text-transform: uppercase; }
+    .signatures {
+      margin-top: 40px;
+      width: 100%;
+    }
+    .signatures td {
+      width: 50%;
+      padding-top: 40px;
+      border-top: 1px solid #94a3b8;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .empty-msg { color: #94a3b8; font-style: italic; padding: 16px; text-align: center; }
+    .grade-badge {
+      display: inline-block;
+      background: #4f46e5;
+      color: white;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>{{ school_name }}</h1>
+    <p>Official Student Report Card</p>
+    {% if academic_year %}
+    <p><strong>Academic Year:</strong> {{ academic_year.name }}</p>
+    {% endif %}
+  </div>
+
+  <div class="title-bar">Student Report Card</div>
+
+  <table class="info-grid">
+    <tr>
+      <td>
+        <div class="label">Student Name</div>
+        <div class="value">{{ student.full_name }}</div>
+      </td>
+      <td>
+        <div class="label">Admission Number</div>
+        <div class="value">{{ student.admission_number }}</div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div class="label">Class</div>
+        <div class="value">{% if student.classroom %}{{ student.classroom.display_name }}{% else %}—{% endif %}</div>
+      </td>
+      <td>
+        <div class="label">Date of Birth</div>
+        <div class="value">{{ student.date_of_birth|date:"F j, Y" }}</div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div class="label">Class Teacher</div>
+        <div class="value">{{ class_teacher }}</div>
+      </td>
+      <td>
+        <div class="label">Guardian</div>
+        <div class="value">{{ student.guardian_name }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="label" style="margin-bottom:8px;">Academic Performance</div>
+  {% if grade_rows %}
+  <table class="grades">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Exam</th>
+        <th>Date</th>
+        <th>Score</th>
+        <th>%</th>
+        <th>Grade</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in grade_rows %}
+      <tr>
+        <td>{{ row.subject }}</td>
+        <td>{{ row.exam_name }}</td>
+        <td>{{ row.exam_date|date:"M j, Y" }}</td>
+        <td>{{ row.score }} / {{ row.max_score }}</td>
+        <td>{{ row.percentage }}%</td>
+        <td><span class="grade-badge">{{ row.letter_grade }}</span></td>
+        <td>{{ row.remarks|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="summary-box">
+    <tr>
+      <td>
+        <div class="num">{{ overall_average }}%</div>
+        <div class="lbl">Overall Average</div>
+      </td>
+      <td>
+        <div class="num"><span class="grade-badge">{{ overall_letter }}</span></div>
+        <div class="lbl">Overall Grade</div>
+      </td>
+      <td>
+        <div class="num">{% if attendance_stats.attendance_rate %}{{ attendance_stats.attendance_rate }}%{% else %}—{% endif %}</div>
+        <div class="lbl">Attendance Rate</div>
+      </td>
+      <td>
+        <div class="num">{{ grade_rows|length }}</div>
+        <div class="lbl">Exams Recorded</div>
+      </td>
+    </tr>
+  </table>
+  {% else %}
+  <p class="empty-msg">No exam grades recorded for this academic year yet.</p>
+  {% endif %}
+
+  <div class="label" style="margin-bottom:8px;">Attendance Summary</div>
+  <table class="summary-box">
+    <tr>
+      <td>
+        <div class="num">{{ attendance_stats.total_days }}</div>
+        <div class="lbl">Days Recorded</div>
+      </td>
+      <td>
+        <div class="num" style="color:#10b981;">{{ attendance_stats.present }}</div>
+        <div class="lbl">Present</div>
+      </td>
+      <td>
+        <div class="num" style="color:#ef4444;">{{ attendance_stats.absent }}</div>
+        <div class="lbl">Absent</div>
+      </td>
+      <td>
+        <div class="num" style="color:#f59e0b;">{{ attendance_stats.late }}</div>
+        <div class="lbl">Late</div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="signatures">
+    <tr>
+      <td>Class Teacher Signature</td>
+      <td>Principal Signature &amp; School Stamp</td>
+    </tr>
+  </table>
+
+</body>
+</html>

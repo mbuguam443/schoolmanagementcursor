@@ -1,0 +1,77 @@
+{% extends 'school/base.html' %}
+{% block title %}Settings{% endblock %}
+{% block page_heading %}School Settings{% endblock %}
+{% block page_subheading %}Academic years and grade levels{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card-panel mb-4">
+      <div class="card-header"><h3>Add Academic Year</h3></div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% for field in year_form %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ field.label }}</label>
+            {{ field }}
+          </div>
+          {% endfor %}
+          <button type="submit" name="year" value="1" class="btn btn-primary-custom">Save Year</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-panel">
+      <div class="card-header"><h3>Academic Years</h3></div>
+      <div class="card-body p-0">
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Name</th><th>Period</th><th>Current</th></tr></thead>
+          <tbody>
+            {% for y in years %}
+            <tr>
+              <td class="fw-semibold">{{ y.name }}</td>
+              <td>{{ y.start_date|date:"Y" }} – {{ y.end_date|date:"Y" }}</td>
+              <td>{% if y.is_current %}<span class="badge bg-success">Current</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted py-3">No academic years.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card-panel mb-4">
+      <div class="card-header"><h3>Add Grade Level</h3></div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% for field in grade_form %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ field.label }}</label>
+            {{ field }}
+          </div>
+          {% endfor %}
+          <button type="submit" name="grade" value="1" class="btn btn-primary-custom">Save Grade</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-panel">
+      <div class="card-header"><h3>Grade Levels</h3></div>
+      <div class="card-body p-0">
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Order</th><th>Name</th></tr></thead>
+          <tbody>
+            {% for g in grades %}
+            <tr><td>{{ g.order }}</td><td class="fw-semibold">{{ g.name }}</td></tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-center text-muted py-3">No grade levels.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

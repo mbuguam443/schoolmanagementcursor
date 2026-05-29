@@ -1,0 +1,82 @@
+{% extends 'school/base.html' %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block page_heading %}{{ student.full_name }}{% endblock %}
+{% block page_subheading %}Admission #{{ student.admission_number }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'school:report_card' student.pk %}" class="btn btn-primary-custom"><i class="bi bi-file-earmark-text"></i> Report Card</a>
+<a href="{% url 'school:report_card_pdf' student.pk %}" class="btn btn-outline-custom"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+<a href="{% url 'school:student_edit' student.pk %}" class="btn btn-outline-custom"><i class="bi bi-pencil"></i> Edit</a>
+<a href="{% url 'school:student_list' %}" class="btn btn-outline-custom">Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card-panel text-center p-4">
+      <div class="avatar-circle mx-auto mb-3" style="width:72px;height:72px;font-size:1.5rem;background:{{ student.photo_color }}">{{ student.initials }}</div>
+      <h4 class="fw-bold">{{ student.full_name }}</h4>
+      <p class="text-muted">{{ student.get_gender_display }} · DOB {{ student.date_of_birth|date:"M j, Y" }}</p>
+      <hr>
+      <p class="mb-1 small text-muted">Class</p>
+      <p class="fw-semibold">{% if student.classroom %}{{ student.classroom.display_name }}{% else %}—{% endif %}</p>
+      <p class="mb-1 small text-muted">Guardian</p>
+      <p class="fw-semibold">{{ student.guardian_name }}</p>
+      <p class="text-muted small">{{ student.guardian_phone }}</p>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card-panel mb-4">
+      <div class="card-header"><h3>Recent Attendance</h3></div>
+      <div class="card-body p-0">
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for a in attendance %}
+            <tr>
+              <td>{{ a.date|date:"M j, Y" }}</td>
+              <td><span class="badge-status badge-{% if a.status == 'P' %}present{% elif a.status == 'A' %}absent{% else %}late{% endif %}">{{ a.get_status_display }}</span></td>
+            </tr>
+            {% empty %}<tr><td colspan="2" class="text-center text-muted py-3">No attendance records.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-panel mb-4">
+      <div class="card-header"><h3>Grades</h3></div>
+      <div class="card-body p-0">
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Exam</th><th>Subject</th><th>Score</th><th>Grade</th></tr></thead>
+          <tbody>
+            {% for g in grades %}
+            <tr>
+              <td>{{ g.exam.name }}</td>
+              <td>{{ g.exam.subject.name }}</td>
+              <td>{{ g.score }}/{{ g.exam.max_score }}</td>
+              <td><span class="badge bg-primary">{{ g.letter_grade }}</span></td>
+            </tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">No grades yet.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-panel">
+      <div class="card-header"><h3>Fees</h3></div>
+      <div class="card-body p-0">
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Title</th><th>Amount</th><th>Status</th><th>Due</th></tr></thead>
+          <tbody>
+            {% for f in fees %}
+            <tr>
+              <td>{{ f.title }}</td>
+              <td>${{ f.amount }}</td>
+              <td><span class="badge-status badge-{{ f.status }}">{{ f.get_status_display }}</span></td>
+              <td>{{ f.due_date|date:"M j, Y" }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">No fee records.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

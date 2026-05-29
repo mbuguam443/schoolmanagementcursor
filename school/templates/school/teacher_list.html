@@ -1,0 +1,41 @@
+{% extends 'school/base.html' %}
+{% block title %}Teachers{% endblock %}
+{% block page_heading %}Teachers{% endblock %}
+{% block page_subheading %}Teaching staff directory{% endblock %}
+{% block top_actions %}<a href="{% url 'school:teacher_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Teacher</a>{% endblock %}
+
+{% block content %}
+<form method="get" class="search-bar">
+  <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" style="max-width:300px" placeholder="Search teachers...">
+  <button class="btn btn-primary-custom" type="submit">Search</button>
+</form>
+
+<div class="row g-3">
+  {% for teacher in teachers %}
+  <div class="col-md-6 col-lg-4">
+    <div class="student-card h-100">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="avatar-circle" style="background:#6366f1">{{ teacher.first_name|slice:":1" }}{{ teacher.last_name|slice:":1" }}</div>
+        <div>
+          <h5 class="mb-0 fw-bold">{{ teacher.full_name }}</h5>
+          <small class="text-muted">{{ teacher.employee_id }}</small>
+        </div>
+      </div>
+      <p class="small mb-2"><i class="bi bi-envelope"></i> {{ teacher.email }}</p>
+      <p class="small mb-3">
+        {% for sub in teacher.subjects.all|slice:":3" %}
+        <span class="badge bg-light text-dark border me-1">{{ sub.code }}</span>
+        {% empty %}<span class="text-muted">No subjects assigned</span>
+        {% endfor %}
+      </p>
+      <div class="d-flex gap-2">
+        <a href="{% url 'school:teacher_detail' teacher.pk %}" class="btn btn-sm btn-primary-custom">View</a>
+        <a href="{% url 'school:teacher_edit' teacher.pk %}" class="btn btn-sm btn-outline-custom">Edit</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card-panel p-5 text-center text-muted">No teachers found.</div></div>
+  {% endfor %}
+</div>
+{% endblock %}

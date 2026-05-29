@@ -1,0 +1,38 @@
+{% extends 'school/base.html' %}
+{% block title %}Timetable{% endblock %}
+{% block page_heading %}Timetable{% endblock %}
+{% block page_subheading %}Weekly class schedule{% endblock %}
+{% block top_actions %}<a href="{% url 'school:timetable_add' %}" class="btn btn-primary-custom"><i class="bi bi-plus-lg"></i> Add Slot</a>{% endblock %}
+
+{% block content %}
+<form method="get" class="search-bar">
+  <select name="classroom" class="form-select" style="max-width:280px" onchange="this.form.submit()">
+    <option value="">Select a classroom...</option>
+    {% for c in classrooms %}
+    <option value="{{ c.pk }}" {% if selected_classroom and selected_classroom.pk == c.pk %}selected{% endif %}>{{ c.display_name }} ({{ c.academic_year.name }})</option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if selected_classroom %}
+<div class="timetable-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+  {% for day_val, day_data in grid.items %}
+  <div class="day-column">
+    <h6 class="fw-bold mb-2">{{ day_data.label }}</h6>
+    {% for slot in day_data.slots %}
+    <div class="slot-item">
+      <div class="fw-semibold">{{ slot.subject.name }}</div>
+      <small class="text-muted">{{ slot.start_time|time:"g:i A" }} – {{ slot.end_time|time:"g:i A" }}</small>
+      <div class="small mt-1">{{ slot.teacher.full_name }}</div>
+      {% if slot.room %}<div class="small text-muted">Room {{ slot.room }}</div>{% endif %}
+    </div>
+    {% empty %}
+    <p class="small text-muted mb-0">No classes</p>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card-panel p-5 text-center text-muted">Select a classroom to view its weekly timetable.</div>
+{% endif %}
+{% endblock %}
